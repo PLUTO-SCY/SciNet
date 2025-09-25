@@ -1,6 +1,7 @@
-# RARE: A Relation-Aware REtrieval Benchmark for Scientific Literature
+# SciNetBench: A Relation-Aware Benchmark for Scientific Literature Retrieval Agents
 
-This repository contains the official implementation and dataset for **RARE** (Relation-Aware REtrieval Benchmark), the first benchmark designed to systematically evaluate the relational understanding of literature retrieval systems in the scientific domain.
+
+This repository contains the official implementation and dataset for **SciNetBench** (A Relation-Aware Benchmark for Scientific Literature Retrieval Agents), the first benchmark designed to systematically evaluate the relational understanding of literature retrieval systems in the scientific domain.
 
 ---
 
@@ -52,17 +53,13 @@ We are committed to making RARE accessible to the research community to foster i
 
 Clone the repository:
 ```bash
-git clone https://github.com/your-username/RARE-benchmark.git
-cd RARE-benchmark
-Install dependencies:
+git clone https://github.com/your-username/xxx.git
 
 bash
-复制代码
 pip install -r requirements.txt
 Download the dataset:
 
 bash
-复制代码
 # Instructions to download and set up the dataset will be provided here.
 ⚙️ Usage
 To evaluate your own retrieval model on RARE, you need to implement a simple wrapper function.
