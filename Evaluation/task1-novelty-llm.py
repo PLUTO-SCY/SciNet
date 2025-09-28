@@ -1,4 +1,4 @@
-# evaluate_disruption.py
+# evaluate_novelty.py
 import json
 import os
 import sqlite3
@@ -10,14 +10,15 @@ import numpy as np
 import sys
 
 # --- 1. Configuration ---
-RECALL_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/results/pasa/oaids/queries_task1_disruptive.json"
-OUTPUT_FILE = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/EvaluationScripts/logs/pasa_llm_disruption_evaluation_results.json"
+RECALL_FILE_PATH = "results/queries_task1_novel.json"
+OUTPUT_FILE = "results/llm_novelty_evaluation_results.json"
 
 
-WORKS_DB_PATH = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/works.db"
-CUSTOM_API_ENDPOINT = "http://35.220.164.252:3888/v1"
-CUSTOM_API_KEY = "sk-B52cka26mugEd4P3EEDyIvMU2jlEabH37wuHz30KNy7825SZ"
-LLM_MODEL = "gpt-5-mini-2025-08-07"
+WORKS_DB_PATH = "OpenAlex/sqlite/works.db"
+CUSTOM_API_ENDPOINT = "xxx"
+CUSTOM_API_KEY = "xxx"
+LLM_MODEL = "gpt-5"
+
 
 
 # --- 2. Abstract Fetcher Module ---
@@ -70,7 +71,7 @@ class AbstractFetcher:
             print("Works database connection closed.")
 
 
-# --- 3. LLM Scorer Module for Disruption ---
+# --- 3. LLM Scorer Module for Novelty ---
 class LLMScorer:
     def __init__(self, api_key, api_endpoint, model):
         self.api_key = api_key
@@ -80,11 +81,11 @@ class LLMScorer:
 
     def _create_prompt(self, title: str, abstract: str) -> list:
         system_prompt = (
-            "You are an expert academic reviewer. Your task is to evaluate a scientific paper on its Disruptiveness.\n\n"
-            "### Definition of Disruptiveness:\n"
-            "**Definition**: Disruptiveness refers to the way a paper influences subsequent research—does it cause future work to cite the paper itself, rather than the previous works it was built upon?\n"
-            "**Focus**: Does the paper change the direction of a research field or its methodologies, causing prior work to be marginalized? For example, the foundational papers on CRISPR gene-editing technology opened new research avenues and made previous editing methods obsolete.\n"
-            "**Scoring Criteria**: A score of 0 represents no disruptive potential (e.g., a review paper), while a score of 10 represents the potential to highly transform a field."
+            "You are an expert academic reviewer. Your task is to evaluate a scientific paper on its Novelty.\n\n"
+            "### Definition of Novelty:\n"
+            "**Definition**: Novelty refers to the uniqueness and originality of the research question, methodology, data, or conclusions relative to existing research.\n"
+            "**Focus**: Does the paper introduce new ideas, perspectives, or methods within the existing body of knowledge? For example, applying a method from Field A to Field B for the first time.\n"
+            "**Scoring Criteria**: A score of 0 represents completely derivative work, while a score of 10 represents a highly original and groundbreaking idea."
         )
         if abstract:
             paper_info = f"**Title**: {title}\n\n**Abstract**: {abstract}"
@@ -92,13 +93,13 @@ class LLMScorer:
             paper_info = f"**Title**: {title}\n\n**Abstract**: [No abstract provided. Please evaluate based on the title alone.]"
         
         user_prompt = (
-            f"Please evaluate the Disruptiveness of the following paper based on the definition provided.\n\n"
+            f"Please evaluate the Novelty of the following paper based on the definition provided.\n\n"
             f"{paper_info}\n\n"
             f"Your response MUST be a single JSON object with 'score' (an integer from 0 to 10) and 'reasoning' (a brief explanation)."
         )
         return [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
 
-    def get_disruption_score(self, title: str, abstract: str, retries=3, delay=5):
+    def get_novelty_score(self, title: str, abstract: str, retries=3, delay=5):
         messages = self._create_prompt(title, abstract)
         data = {"model": self.model, "messages": messages, "temperature": 0.2}
         for attempt in range(retries):
@@ -120,7 +121,7 @@ class LLMScorer:
 
 # --- 4. Main Evaluation Workflow ---
 def main():
-    print("\n--- Starting LLM-Based Disruption Evaluation ---")
+    print("\n--- Starting LLM-Based Novelty Evaluation ---")
     fetcher = AbstractFetcher(WORKS_DB_PATH)
     scorer = LLMScorer(CUSTOM_API_KEY, CUSTOM_API_ENDPOINT, LLM_MODEL)
     with open(RECALL_FILE_PATH, 'r', encoding='utf-8') as f:
@@ -132,10 +133,10 @@ def main():
     else:
         results = {}
     all_query_avg_scores = []
-    for query, papers in tqdm(recall_data.items(), desc="Evaluating Queries for Disruption"):
+    for query, papers in tqdm(recall_data.items(), desc="Evaluating Queries for Novelty"):
         if query in results:
-            if results[query].get("average_disruption_score") is not None:
-                all_query_avg_scores.append(results[query]["average_disruption_score"])
+            if results[query].get("average_novelty_score") is not None:
+                all_query_avg_scores.append(results[query]["average_novelty_score"])
             continue
         top_5_papers = papers[:5]
         paper_ids_full = [p['id'] for p in top_5_papers]
@@ -147,29 +148,29 @@ def main():
             details = paper_details.get(pid)
             score, reason = None, "Paper details not found in DB."
             if details:
-                score, reason = scorer.get_disruption_score(details['title'], details['abstract'])
+                score, reason = scorer.get_novelty_score(details['title'], details['abstract'])
             scored_papers_details.append({
                 "id": pid,
                 "title": paper.get('title'),
-                "llm_disruption_score": score,
-                "llm_disruption_reasoning": reason
+                "llm_novelty_score": score,
+                "llm_novelty_reasoning": reason
             })
             if score is not None: query_scores.append(score)
         avg_score = np.mean(query_scores) if query_scores else None
-        results[query] = {"average_disruption_score": avg_score, "scored_papers": scored_papers_details}
+        results[query] = {"average_novelty_score": avg_score, "scored_papers": scored_papers_details}
         if avg_score is not None: all_query_avg_scores.append(avg_score)
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
     fetcher.close()
-    print("\n--- Final Disruption Evaluation Report ---")
+    print("\n--- Final Novelty Evaluation Report ---")
     if all_query_avg_scores:
         overall_average = np.mean(all_query_avg_scores)
         print("\n" + "="*50)
-        print(f"💣 Overall Average LLM Disruption Score: {overall_average:.4f}")
+        print(f"📊 Overall Average LLM Novelty Score: {overall_average:.4f}")
         print("="*50)
     else:
-        print("\nCould not calculate an overall average disruption score.")
-    print(f"Detailed disruption results have been saved to {OUTPUT_FILE}")
+        print("\nCould not calculate an overall average novelty score.")
+    print(f"Detailed novelty results have been saved to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()

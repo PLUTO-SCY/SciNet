@@ -7,10 +7,10 @@ from scipy.stats import percentileofscore
 # --- 1. Configuration ---
 
 # The directory containing your reference disruption score files
-REFERENCE_SCORES_DIR = "/data5/shaochenyang/AI_Scientist/OpenAlex/task1Result/disruption"
+REFERENCE_SCORES_DIR = "results/disruption"
 
 # A cache file to store the loaded distribution for much faster subsequent runs
-REFERENCE_CACHE_FILE = "disruption_distribution.npy"
+REFERENCE_CACHE_FILE = "results/disruption_distribution.npy"
 
 # Your specific list of scores to be transformed
 SCORES_TO_TRANSFORM = [-0.389, -0.489, -0.071, -0.153, 0.045, 0.062, 0.119, 0.135]

@@ -9,14 +9,14 @@ from tqdm import tqdm
 # --- 1. Configuration ---
 
 # Input file containing the recalled papers for each query
-RECALL_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/results/pasa/oaids/queries_task1_novel.json"
+RECALL_FILE_PATH = "results/queries_task1_novel.json"
 
 # Database containing pre-computed z-scores for citation pairs
-Z_SCORES_FILE = "/data5/shaochenyang/AI_Scientist/OpenAlex/task1Result/combine-novelty-juhe/final_z_scores_smart_filtered_and_sorted.parquet"
+Z_SCORES_FILE = "results/all_paper_z_score"
 
 # SQLite database file for fetching paper references
 # This database maps a citing paper ID to the list of papers it referenced.
-FORWARD_CITATION_DB = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/citing_to_cited.db"
+FORWARD_CITATION_DB = "OpenAlex/sqlite/citing_to_cited.db"
 
 # --- 2. Data Fetching & Calculation Modules ---
 

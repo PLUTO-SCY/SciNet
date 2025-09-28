@@ -7,14 +7,14 @@ import numpy as np
 # --- 1. Configuration ---
 
 # Input file containing the recalled papers
-RECALL_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/results/pasa/oaids/queries_task1_disruptive.json"
+RECALL_FILE_PATH = "results/queries_task1_disruptive.json"
 
 # SQLite database files required for the calculation
-FORWARD_CITATION_DB = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/citing_to_cited.db"
-REVERSE_CITATION_DB = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/cited_to_citing.db"
+FORWARD_CITATION_DB = "/OpenAlex/sqlite/citing_to_cited.db"
+REVERSE_CITATION_DB = "/OpenAlex/sqlite/cited_to_citing.db"
 
 # --- MODIFIED: Added an output file path for the results ---
-OUTPUT_FILE = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/EvaluationScripts/logs/paperqa_sos_disruption_evaluation_results.json"
+OUTPUT_FILE = "results/paperqa_sos_disruption_evaluation_results.json"
 
 # --- 2. Optimized Data Fetching & Calculation Modules ---
 

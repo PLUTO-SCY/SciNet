@@ -8,32 +8,32 @@ from tqdm import tqdm
 import numpy as np
 import sys
 
-# --- 1. 配置 ---
-# 模型召回的路径结果文件 (使用Qwen的结果)
-RECALL_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/results/pasa/oaids/queries_task3_paths.json"
-# 输出文件路径 (更新文件名以匹配模型)
-OUTPUT_FILE = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/EvaluationScripts/logs/pasa_llm_path_evaluation_results.json"
+# --- 1. Configuration ---
+# Path to model recall results
+RECALL_FILE_PATH = "results/answers_task3_paths.json"
+# Output file path (update filename to match the model)
+OUTPUT_FILE = "results/llm_path_evaluation_results.json"
 
-# 包含论文摘要的数据库
-WORKS_DB_PATH = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/works.db"
+# Database containing paper abstracts
+WORKS_DB_PATH = "OpenAlex/sqlite/works.db"
 
-# LLM API 配置
-CUSTOM_API_ENDPOINT = "http://35.220.164.252:3888/v1"
-CUSTOM_API_KEY = "sk-B52cka26mugEd4P3EEDyIvMU2jlEabH37wuHz30KNy7825SZ"
-LLM_MODEL = "gpt-5-mini-2025-08-07"
+# LLM API configuration
+CUSTOM_API_ENDPOINT = "xxx"
+CUSTOM_API_KEY = "xxx"
+LLM_MODEL = "gpt-5"
 
 
-# --- 2. 摘要提取模块 ---
+# --- 2. Abstract Fetching Module ---
 class AbstractFetcher:
     def __init__(self, db_path):
-        print(f"正在连接 works 数据库: {db_path}")
-        if not os.path.exists(db_path): raise FileNotFoundError(f"数据库未在路径 {db_path} 找到")
+        print(f"Connecting to works database: {db_path}")
+        if not os.path.exists(db_path): raise FileNotFoundError(f"Database not found at path {db_path}")
         try:
             self.conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
             self.cursor = self.conn.cursor()
-            print("Works 数据库连接成功。")
+            print("Successfully connected to works database.")
         except sqlite3.Error as e:
-            print(f"数据库连接错误: {e}")
+            print(f"Database connection error: {e}")
             sys.exit(1)
 
     def _reconstruct_abstract(self, abstract_inverted_index: dict) -> str:
@@ -69,16 +69,16 @@ class AbstractFetcher:
                         abstract = self._reconstruct_abstract(abstract_index)
                     except (ValueError, SyntaxError): abstract = ""
                 details_map[full_id] = {"title": title, "abstract": abstract}
-        except sqlite3.Error as e: print(f"数据库查询失败: {e}")
+        except sqlite3.Error as e: print(f"Database query failed: {e}")
         return details_map
 
     def close(self):
         if self.conn:
             self.conn.close()
-            print("Works 数据库连接已关闭。")
+            print("Works database connection closed.")
 
 
-# --- 3. LLM 路径评估模块 (Prompt已优化) ---
+# --- 3. LLM Path Evaluation Module (Optimized Prompt) ---
 class LLMPathScorer:
     def __init__(self, api_key, api_endpoint, model):
         self.api_key = api_key
@@ -132,16 +132,16 @@ class LLMPathScorer:
                 score = parsed_json.get("score")
                 if isinstance(score, int) and 0 <= score <= 10:
                     return score, parsed_json.get("reasoning", "")
-                return None, f"收到了无效的分数: {score}"
+                return None, f"Received an invalid score: {score}"
             except (requests.RequestException, json.JSONDecodeError, KeyError, IndexError) as e:
-                print(f"[警告] LLM 调用尝试 {attempt + 1}/{retries} 失败: {e}")
+                print(f"[Warning] LLM call attempt {attempt + 1}/{retries} failed: {e}")
                 if attempt < retries - 1: time.sleep(delay)
-        return None, "多次重试后未能获得有效分数。"
+        return None, "Failed to obtain a valid score after multiple retries."
 
 
-# --- 4. 主评估流程 ---
+# --- 4. Main Evaluation Workflow ---
 def main():
-    print("\n--- 开始基于LLM的引用路径评估 (优化版Prompt) ---")
+    print("\n--- Starting LLM-based citation path evaluation (Optimized Prompt) ---")
     fetcher = AbstractFetcher(WORKS_DB_PATH)
     scorer = LLMPathScorer(CUSTOM_API_KEY, CUSTOM_API_ENDPOINT, LLM_MODEL)
     
@@ -151,14 +151,14 @@ def main():
     if os.path.exists(OUTPUT_FILE):
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
             results = json.load(f)
-        print(f"恢复分析。已从 {OUTPUT_FILE} 加载 {len(results)} 条已完成的查询。")
+        print(f"Resuming analysis. Loaded {len(results)} completed queries from {OUTPUT_FILE}.")
     else:
         results = {}
 
     all_query_scores = [res['llm_path_score'] for res in results.values() if res.get('llm_path_score') is not None]
 
     try:
-        for query, papers in tqdm(recall_data.items(), desc="评估引用路径"):
+        for query, papers in tqdm(recall_data.items(), desc="Evaluating citation paths"):
             if query in results:
                 continue
 
@@ -188,15 +188,15 @@ def main():
     finally:
         fetcher.close()
 
-    print("\n--- 最终路径评估报告 ---")
+    print("\n--- Final Path Evaluation Report ---")
     if all_query_scores:
         overall_average = np.mean(all_query_scores)
         print("\n" + "="*50)
-        print(f"📊 所有路径的LLM平均分: {overall_average:.4f}")
+        print(f"📊 Average LLM score across all paths: {overall_average:.4f}")
         print("="*50)
     else:
-        print("\n未能计算出最终平均分。")
-    print(f"详细的路径评估结果已保存至 {OUTPUT_FILE}")
+        print("\nUnable to compute final average score.")
+    print(f"Detailed path evaluation results have been saved to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()

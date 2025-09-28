@@ -1,3 +1,4 @@
+```python
 import os
 import requests
 import arxiv
@@ -11,52 +12,52 @@ from lxml import etree
 import time
 import sqlite3
 
-# --- 1. 配置区域 ---
+# --- 1. Configuration Section ---
 
-RESULTS_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/results/o3-deep-research-2025-06-26/papers_oaids/queries_task2_pncites_v2_papers.json"
+RESULTS_FILE_PATH = "results/answers_task2_sentiment.json"
 
-QUERIES_FILE_PATH = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/Queries/queries_task2_pncites_v2.json"
+QUERIES_FILE_PATH = "queries/queries_task2_sentiment.json"
 
-# --- 新增：输出日志文件 ---
-LOG_DIR = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/EvaluationScripts/logs/contextlogs"
+# --- New: Output log file ---
+LOG_DIR = "results/contextlogs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# 提取 "results/" 之后的第一层目录名
+# Extract the first-level directory name after "results/"
 results_dirname = os.path.basename(
     os.path.dirname(
-        os.path.dirname(RESULTS_FILE_PATH)  # 上两级目录 -> papers_oaids 的上级
+        os.path.dirname(RESULTS_FILE_PATH)  # Two levels up -> parent of papers_oaids
     )
 )
-# 构造日志文件名
+# Construct the log filename
 OUTPUT_LOG_FILE = os.path.join(LOG_DIR, f"evaluation_log_{results_dirname}.log")
 
-# --- 数据库与资源路径 ---
-FORWARD_DB_PATH = "/data5/shaochenyang/AI_Scientist/OpenAlex/sqlite/citing_to_cited.db"
-ARXIV_LOCAL_ROOT = "/data6/Arxiv_Papers/Arxiv"
-OUTPUT_PDF_DIR = "/data5/shaochenyang/AI_Scientist/Baselines/Task4Evaluation/EvaluationScripts/temp_pdfs"
+# --- Database & resource paths ---
+FORWARD_DB_PATH = "OpenAlex/sqlite/citing_to_cited.db"
+ARXIV_LOCAL_ROOT = "Arxiv_Papers/Arxiv"
+OUTPUT_PDF_DIR = "results/temp_pdfs"
 os.makedirs(OUTPUT_PDF_DIR, exist_ok=True)
 
-# --- 服务与API配置 ---
+# --- Service & API configuration ---
 GROBID_URL = "http://localhost:8070/api/processFulltextDocument"
-# --- 修改点 1: 新增GROBID超时配置 ---
-GROBID_TIMEOUT_SECONDS = 240  # 为GROBID设置更长的超时时间（秒），从60秒增加到180秒
-LLM_API_ENDPOINT = "http://35.220.164.252:3888/v1"
-LLM_API_KEY = "sk-B52cka26mugEd4P3EEDyIvMU2jlEabH37wuHz30KNy7825SZ"
-LLM_MODEL = "gpt-5-mini-2025-08-07"
+# --- Change 1: Add GROBID timeout configuration ---
+GROBID_TIMEOUT_SECONDS = 240  # Increase timeout from 60s to 240s
+LLM_API_ENDPOINT = "xxx"
+LLM_API_KEY = "xxx"
+LLM_MODEL = "gpt-5"
 
-# --- 解析参数 ---
+# --- Parsing parameters ---
 SIMILARITY_THRESHOLD = 85
 GROBID_TITLE_MATCH_THRESHOLD = 90
 
-# --- GROBID XML 解析命名空间 ---
+# --- GROBID XML parsing namespace ---
 TEI_NAMESPACE = "http://www.tei-c.org/ns/1.0"
 NS_MAP = {'tei': TEI_NAMESPACE}
 
 
-# --- 2. 核心功能模块 (类封装) ---
+# --- 2. Core functional modules (class encapsulation) ---
 
 class PDFManager:
-    """处理PDF的获取，优先本地，其次下载。"""
+    """Handle PDF retrieval, preferring local files and falling back to download."""
     def __init__(self, local_root, download_dir):
         self.local_root = local_root
         self.download_dir = download_dir
@@ -93,27 +94,27 @@ class PDFManager:
                         result.download_pdf(dirpath=self.download_dir, filename=filename)
                     return download_path
         except Exception as e:
-            tqdm.write(f"[PDFManager Error] 处理 '{title[:30]}...' 时出错: {e}")
+            tqdm.write(f"[PDFManager Error] Error processing '{title[:30]}...': {e}")
         return None
 
 class ContextExtractor:
-    """使用GROBID从PDF中提取特定引用的上下文。"""
-    # --- 修改点 2: 更新构造函数以接收超时参数 ---
+    """Use GROBID to extract citation contexts from PDFs."""
+    # --- Change 2: Update constructor to accept timeout parameter ---
     def __init__(self, grobid_url, timeout_seconds):
         self.grobid_url = grobid_url
-        self.timeout = timeout_seconds  # 将超时时间存储为实例变量
+        self.timeout = timeout_seconds  # store timeout as instance variable
         self.parser = etree.XMLParser(recover=True)
 
     def get_citation_contexts(self, pdf_path: str, target_reference_title: str) -> list[str]:
         try:
             with open(pdf_path, 'rb') as f:
                 files = {'input': (os.path.basename(pdf_path), f, 'application/pdf')}
-                # --- 修改点 3: 在请求中使用配置的超时时间 ---
+                # --- Change 3: use configured timeout in request ---
                 response = requests.post(self.grobid_url, files=files, timeout=self.timeout)
             if response.status_code != 200: return []
             root = etree.fromstring(response.content, self.parser)
         except Exception as e:
-            tqdm.write(f"[GROBID Error] 调用GROBID失败: {e}")
+            tqdm.write(f"[GROBID Error] Failed to call GROBID: {e}")
             return []
 
         bibl_structs = root.xpath('//tei:listBibl/tei:biblStruct', namespaces=NS_MAP)
@@ -138,7 +139,7 @@ class ContextExtractor:
         return list(contexts)
 
 class SentimentAnalyzer:
-    """使用LLM分析引用上下文的情感倾向。"""
+    """Use LLM to analyze sentiment of citation contexts."""
     def __init__(self, api_key, api_endpoint, model):
         self.url = f"{api_endpoint}/chat/completions"
         self.model = model
@@ -168,23 +169,23 @@ Context to analyze:
             if label in ["Positive", "Negative", "Neutral"]:
                 return label
         except Exception as e:
-            tqdm.write(f"[LLM Error] API调用失败: {e}")
+            tqdm.write(f"[LLM Error] API call failed: {e}")
         return None
 
-# --- 3. 辅助函数 ---
+# --- 3. Helper functions ---
 def extract_title_from_query(query: str) -> str | None:
     match = re.search(r'titled "(.*?)"', query)
     return match.group(1) if match else None
 
-# --- 4. 主评估逻辑 ---
+# --- 4. Main evaluation logic ---
 def main():
-    print(f"--- 开始评估正面引用召回质量 (日志将保存至: {OUTPUT_LOG_FILE}) ---")
+    print(f"--- Starting evaluation of positive citation recall quality (logs will be saved to: {OUTPUT_LOG_FILE}) ---")
     if not all(os.path.exists(p) for p in [QUERIES_FILE_PATH, RESULTS_FILE_PATH, FORWARD_DB_PATH]):
-        print("错误：一个或多个必需文件未找到。请检查路径配置。")
+        print("Error: One or more required files not found. Please check path configuration.")
         return
 
     pdf_manager = PDFManager(ARXIV_LOCAL_ROOT, OUTPUT_PDF_DIR)
-    # --- 修改点 4: 在初始化时传入超时参数 ---
+    # --- Change 4: pass timeout parameter on initialization ---
     context_extractor = ContextExtractor(GROBID_URL, GROBID_TIMEOUT_SECONDS)
     sentiment_analyzer = SentimentAnalyzer(LLM_API_KEY, LLM_API_ENDPOINT, LLM_MODEL)
     
@@ -195,10 +196,10 @@ def main():
         try:
             with open(OUTPUT_LOG_FILE, 'r', encoding='utf-8') as f:
                 results_log = json.load(f)
-            tqdm.write(f"已成功加载 {len(results_log)} 条来自日志文件的已有结果。")
+            tqdm.write(f"Successfully loaded {len(results_log)} existing results from log file.")
         except (json.JSONDecodeError, IOError):
             results_log = {}
-            tqdm.write("警告：日志文件存在但无法解析，将创建一个新的日志。")
+            tqdm.write("Warning: Log file exists but cannot be parsed. A new log will be created.")
     else:
         results_log = {}
 
@@ -206,7 +207,7 @@ def main():
     cursor = conn.cursor()
 
     try:
-        for source_paper_id_full, query_text in tqdm(queries_data.items(), desc="评估所有查询"):
+        for source_paper_id_full, query_text in tqdm(queries_data.items(), desc="Evaluating all queries"):
             if query_text in results_log:
                 continue
 
@@ -216,7 +217,7 @@ def main():
             retrieved_papers = results_data.get(query_text, [])
             analyzed_papers_for_query = []
             
-            for paper in tqdm(retrieved_papers, desc=f"处理查询 '{target_title[:20]}...'", leave=False):
+            for paper in tqdm(retrieved_papers, desc=f"Processing query '{target_title[:20]}...'", leave=False):
                 retrieved_id_full = paper.get("id")
                 retrieved_title = paper.get("title")
                 
@@ -276,10 +277,10 @@ def main():
     finally:
         if conn:
             conn.close()
-            print("\n数据库连接已关闭。")
+            print("\nDatabase connection closed.")
 
     if not results_log:
-        print("没有评估任何查询。")
+        print("No queries were evaluated.")
         return
 
     total_retrieved_papers = 0
@@ -311,23 +312,23 @@ def main():
         micro_avg_positive = total_positive_cite_papers / total_retrieved_papers
         macro_avg_positive = sum(query_positive_accuracies) / len(query_positive_accuracies)
 
-        print("\n--- 最终评估报告 (根据日志文件生成) ---")
-        print(f"已评估查询总数: {len(results_log)}")
-        print(f"总召回论文数: {total_retrieved_papers}")
+        print("\n--- Final Evaluation Report (generated from log file) ---")
+        print(f"Total queries evaluated: {len(results_log)}")
+        print(f"Total retrieved papers: {total_retrieved_papers}")
         
-        print("\n--- 指标 1: 简单引用准确率 (Structural Check) ---")
-        print("衡量召回的论文是否真的引用了目标论文")
-        print(f"总计引用数: {total_simple_cite_papers}")
-        print(f"宏平均准确率: {macro_avg_simple:.2%}")
-        print(f"微平均准确率: {micro_avg_simple:.2%}")
+        print("\n--- Metric 1: Simple citation accuracy (Structural Check) ---")
+        print("Measures whether retrieved papers actually cited the target paper")
+        print(f"Total citation count: {total_simple_cite_papers}")
+        print(f"Macro-average accuracy: {macro_avg_simple:.2%}")
+        print(f"Micro-average accuracy: {micro_avg_simple:.2%}")
         
-        print("\n--- 指标 2: 正面引用准确率 (Semantic Check) ---")
-        print("衡量召回的论文是否对目标论文进行了正面引用")
-        print(f"总计正面引用数: {total_positive_cite_papers}")
-        print(f"宏平均准确率: {macro_avg_positive:.2%}")
-        print(f"微平均准确率: {micro_avg_positive:.2%}")
+        print("\n--- Metric 2: Positive citation accuracy (Semantic Check) ---")
+        print("Measures whether retrieved papers cited the target paper positively")
+        print(f"Total positive citation count: {total_positive_cite_papers}")
+        print(f"Macro-average accuracy: {macro_avg_positive:.2%}")
+        print(f"Micro-average accuracy: {micro_avg_positive:.2%}")
         print("-" * 45)
 
 if __name__ == "__main__":
     main()
-
+```

@@ -7,7 +7,7 @@ from scipy.stats import percentileofscore
 # --- 1. Configuration ---
 
 # Directory containing the reference novelty scores to build the distribution
-REFERENCE_SCORES_DIR = "/data5/shaochenyang/AI_Scientist/OpenAlex/task1Result/CNovelty_multiprocess_5000_final"
+REFERENCE_SCORES_DIR = "results/CNovelty"
 
 # Cache file for the reference distribution to speed up subsequent runs
 REFERENCE_CACHE_FILE = "novelty_distribution.npy"
