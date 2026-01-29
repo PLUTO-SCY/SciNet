@@ -1,9 +1,8 @@
-# SciNetBench: A Relation-Aware Benchmark for Scientific Literature Retrieval Agents
+# SciNet: Evaluating AI Agents in Relation-Aware Scientific Literature Retrieval
 
 ![casefig](pics/casefig.png)
 
-
-**SciNetBench** is the first comprehensive benchmark designed to systematically evaluate the **relation-aware** retrieval capabilities of AI agents within large-scale scientific networks. While traditional retrieval paradigms rely on surface-level semantic matching, SciNetBench focuses on decoding the critical relational dynamics inherent in scientific discourse—such as identifying technological lineages, understanding peer assessments, and capturing the intrinsic disruption of research.
+**SciNet** is the first comprehensive dataset designed to systematically evaluate the **relation-aware** retrieval capabilities of AI agents within large-scale scientific networks. While traditional retrieval paradigms rely on surface-level semantic matching, SciNetBench focuses on decoding the critical relational dynamics inherent in scientific discourse—such as identifying technological lineages, understanding peer assessments, and capturing the intrinsic disruption of research.
 
 ---
 
